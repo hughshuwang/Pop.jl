@@ -1,9 +1,9 @@
 # Pop.jl
 
-**Portfolio optimization and simulation in Julia**
-**Author:** Shu Wang (hugh.shu.wang@gmail.com)
-**Created:** September 2018 (one month after when Julia 1.0.0 was launched)
-**Inspired by:** [cvxportfolio project (in Python) by Stanford Convex Group](http://cvxportfolio.org/). 
+**Portfolio optimization and simulation in Julia**  
+**Author:** Shu Wang (hugh.shu.wang@gmail.com)  
+**Created:** September 2018 (one month after Julia 1.0.0 was launched)  
+**Inspired by:** [cvxportfolio project (in Python) by Stanford Convex Group](http://cvxportfolio.org/).    
 
 [TOC]
 
