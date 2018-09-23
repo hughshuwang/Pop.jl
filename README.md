@@ -2,8 +2,9 @@
 
 **Portfolio optimization and simulation in Julia**  
 **Author:** Shu Wang (hugh.shu.wang@gmail.com)  
-**Created:** September 2018 (one month after Julia 1.0.0 was launched)  
-**Inspired by:** [cvxportfolio project (in Python) by Stanford Convex Group](http://cvxportfolio.org/).    
+**Created:** September 2018 (one month after Julia v1.0.0 was launched)  
+
+
 
 [TOC]
 
@@ -14,8 +15,4 @@
 
 ## TODOs
 
-- `HelloWorld.ipynb`
-  - [ ] Implement `TcostModel` and `HcostModel` in cost models.
-  - [ ] Implement `.FullSigma` in risk models.
-  - [ ] Implement `LeverageLimit` in constraints.
-  - [ ] Implement market simulator.
+- [ ] Module type map infrastructure
