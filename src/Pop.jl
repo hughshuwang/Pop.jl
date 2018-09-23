@@ -1,8 +1,13 @@
-VERSION < v"1.0.0" && __precompile__()
+__precompile__()
 
 module Pop
 
+using CSV
 using Dates
+using DataFrames
+using FileIO
+using HTTP
+
 
 # import
 # export
@@ -11,77 +16,95 @@ using Dates
 
 # Module Type Map
 abstract type Expression end
-abstract type BaseCost          <: Expression end # gamma para
-abstract type BasePolicy        <: Expression end
-abstract type BaseConstraint    <: Expression end
-abstract type BaseRisk          <: Expression end
-abstract type BaseReturns       <: Expression end
+abstract type Policy        <: Expression end
+abstract type Constraint    <: Expression end
+abstract type CostModel     <: Expression end # gamma para
+abstract type RiskModel     <: Expression end
+abstract type ReturnModel   <: Expression end
 abstract type SimulatorResult end
 
 
 # Constraint Family
 # bmk weight put outside
 # common method called _weight_expr
-struct MaxTrade         <: BaseConstraint
+struct MaxTrade         <: Constraint
     # w_bench::Union{Vector{Number}, Missing} # benchmark weight
     ADVs
     max_fraction # default value?
     # member fun: weight_expr
 end
-struct LongOnly         <: BaseConstraint end
-struct LeverageLimit    <: BaseConstraint
+struct LongOnly         <: Constraint end
+struct LeverageLimit    <: Constraint
     limit::Vector{Number}
 end
-struct LongCash         <: BaseConstraint end
-struct DollarNeutral    <: BaseConstraint end
-struct MaxWeights       <: BaseConstraint
+struct LongCash         <: Constraint end
+struct DollarNeutral    <: Constraint end
+struct MaxWeights       <: Constraint
     limit::Vector{Number}
 end
-struct MinWeights       <: BaseConstraint
+struct MinWeights       <: Constraint
     limit::Vector{Number}
 end
-struct FactorMaxLimit   <: BaseConstraint
+struct FactorMaxLimit   <: Constraint
     factor_exposure::Matrix{Number}
     limit::Vector{Number}
 end
-struct FactorMinLimit   <: BaseConstraint
+struct FactorMinLimit   <: Constraint
     factor_exposure::Matrix{Number}
     limit::Vector{Number}
 end
-struct FixedAlpha       <: BaseConstraint
+struct FixedAlpha       <: Constraint
     return_forecast::Vector{Number} # forecast on each assets
     alpha_targe::Union{Vector{Number}, Number} # target portfolio ret
 end
 
 
-# Cost Family
-struct HcostModel <: BaseCost end
-struct TcostModel <: BaseCost end
+# Cost Family <: CostModel
+# main mem func: estimate, time, trades, value, returns an expr for the tcosts
+# call expression from cvx
+struct HcostModel <: CostModel
+    borrow_costs::DataFrame
+    dividends::DataFrame
+end
+struct TcostModel <: CostModel
+    volume::DataFrame # time series index required
+    sigma::DataFrame # or Matrix{Number}, daily volatilities
+    half_spread::DataFrame
+    nonlin_coeff::DataFrame
+    power::Number
+end
 
-struct Hold                 <: BasePolicy end
-struct RankAndLongShort     <: BasePolicy end
-struct ProportionalTrade    <: BasePolicy end
-struct SellAll              <: BasePolicy end
-struct FixedTrade           <: BasePolicy end
 
-struct BaseRebalance        <: BasePolicy end
-struct PeriodicRebalance    <: BaseRebalance end
-struct AdaptiveRebalance    <: BaseRebalance end
+# Policy Family
+struct Hold                 <: Policy end
+struct RankAndLongShort     <: Policy end
+struct ProportionalTrade    <: Policy end
+struct SellAll              <: Policy end
+struct FixedTrade           <: Policy end
 
-struct SinglePeriodOpt      <: BasePolicy end
-struct MultiPeriodOpt       <: BasePolicy end # in python, sub of SinglePeriodOpt
+struct Rebalance            <: Policy end
+struct PeriodicRebalance    <: Rebalance end
+struct AdaptiveRebalance    <: Rebalance end
 
-struct FullSigma                <: BaseRisk end
-struct EmpSigma                 <: BaseRisk end
-struct SqrtSigma                <: BaseRisk end
-struct FactorModelSigma         <: BaseRisk end
-struct RobustSigma              <: BaseRisk end
-struct RobustFactorModelSigma   <: BaseRisk end
-struct WorstCaseRisk            <: BaseRisk end
+struct SinglePeriodOpt      <: Policy end
+struct MultiPeriodOpt       <: Policy end # in python, sub of SinglePeriodOpt
 
-struct ReturnsForecast          <: BaseReturns end
-struct MPOReturnsForecast       <: BaseReturns end
-struct MultipleReturnsForecasts <: BaseReturns end
+
+# Risk Family <: RiskModel
+# w_bench, gamma_half_life
+struct FullSigma                <: RiskModel end
+struct EmpSigma                 <: RiskModel end
+struct SqrtSigma                <: RiskModel end
+struct FactorModelSigma         <: RiskModel end
+struct RobustSigma              <: RiskModel end
+struct RobustFactorModelSigma   <: RiskModel end
+struct WorstCaseRisk            <: RiskModel end
+
+
+# Returns Family
+struct ReturnsForecast          <: ReturnModel end
+struct MPOReturnsForecast       <: ReturnModel end
+struct MultipleReturnsForecasts <: ReturnModel end
 
 
 """
@@ -123,14 +146,12 @@ In python, pick the last row from a pandas dataframe
 function locator(obj::DataFrame, t::Date) end
 
 
-
 """
-    getfisquarter(df::Date)
+    getfq(df::Date)
 
 Convert a Date to a fiscal quarter string
 """
-getfisquarter(df::Date) =  string("Q", Int64(floor((month(t) - 1) / 3) + 1), " ", year(t))
-
+getfq(df::Date) = string("Q", Int(floor((month(t)-1)/3) + 1), " ", year(t))
 
 # other includes
 
