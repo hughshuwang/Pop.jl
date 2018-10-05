@@ -5,9 +5,6 @@ module Pop
 using CSV
 using Dates
 using DataFrames
-using FileIO
-using HTTP
-
 
 # import
 # export
@@ -15,18 +12,17 @@ using HTTP
 # includes ahead
 
 # Module Type Map
-abstract type Expression end
-abstract type Policy        <: Expression end
-abstract type Constraint    <: Expression end
-abstract type CostModel     <: Expression end # gamma para
-abstract type RiskModel     <: Expression end
-abstract type ReturnModel   <: Expression end
+abstract type Policy end
+abstract type Constraint end
+abstract type CostModel end # param req: gamma
+abstract type RiskModel end
+abstract type ReturnModel end
 abstract type SimulatorResult end
 
-
 # Constraint Family
-# bmk weight put outside
-# common method called _weight_expr
+# TODO: macro req: expression
+# TODO: param req: bmk weight put outside
+# TODO: method req: common method called _weight_expr (DEPRECATED)
 struct MaxTrade         <: Constraint
     # w_bench::Union{Vector{Number}, Missing} # benchmark weight
     ADVs
@@ -34,17 +30,11 @@ struct MaxTrade         <: Constraint
     # member fun: weight_expr
 end
 struct LongOnly         <: Constraint end
-struct LeverageLimit    <: Constraint
-    limit::Vector{Number}
-end
+struct LeverageLimit    <: Constraint limit::Vector{Number} end
 struct LongCash         <: Constraint end
 struct DollarNeutral    <: Constraint end
-struct MaxWeights       <: Constraint
-    limit::Vector{Number}
-end
-struct MinWeights       <: Constraint
-    limit::Vector{Number}
-end
+struct MaxWeights       <: Constraint limit::Vector{Number} end
+struct MinWeights       <: Constraint limit::Vector{Number} end
 struct FactorMaxLimit   <: Constraint
     factor_exposure::Matrix{Number}
     limit::Vector{Number}
@@ -63,10 +53,12 @@ end
 # main mem func: estimate, time, trades, value, returns an expr for the tcosts
 # call expression from cvx
 struct HcostModel <: CostModel
+    gamma::Number
     borrow_costs::DataFrame
     dividends::DataFrame
 end
 struct TcostModel <: CostModel
+    gamma::Number
     volume::DataFrame # time series index required
     sigma::DataFrame # or Matrix{Number}, daily volatilities
     half_spread::DataFrame
@@ -74,6 +66,11 @@ struct TcostModel <: CostModel
     power::Number
 end
 
+function estimate(;costmodel::T, t::U, tau::U = t, w_plus::Vector{Number},
+    z::Vector{Number}, value::Vector{Number}
+    ) where {T<:CostModel, U<:TimeType}
+
+end
 
 # Policy Family
 struct Hold                 <: Policy end
