@@ -1,13 +1,35 @@
 module DataMgmt
 
-using Dates
 using CSV
-using HTTP
+using Dates
 using DataFrames
-using FileIO
+using JuMP
+using Lazy
+using TimeSeries
 
 # import
 # export
+
+@doc """
+    getDataFrame(file::String)
+    getDataFrame(file::Vector{String})
+"""
+function getDataFrame(file::String)::DataFrame
+    rets = Lazy.@as x file CSV.File(x) DataFrame(x) x[:, 2:ncol(x)] # Base.getindex
+
+    # PENDING FOR GENERATING A TIMEARRAY
+    # core = @as x rets convert(Array, x[:, 2:ncol(x)]) # drop date
+    # symbols = @as x rets names(x)[1:(ncol(x)-1)]
+    # typeof(convert(Array, rets)) <: AbstractArray
+
+    # ts = TimeArray(convert(AbstractVector{Date}, rets[:date]),
+    #     @as x rets convert(Array, Base.getindex(x, :, 2:ncol(x))))
+    # cannot set colnames # this time array is sooooo weird
+
+    rets
+end
+getDataFrame(files::Vector{String})::Vector{DataFrame} = map(getDataFrame, files)
+
 
 @doc """
     getquotemedia(;start_date::Date, end_date::Date, symbol::String)
