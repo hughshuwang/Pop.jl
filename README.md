@@ -44,8 +44,7 @@ julia> Pkg.status()
 
 ## Guidelines
 
-- Optimizing Global Equity Factor Tilting (iShares Core ETFs)
-- **Starting point**: `SF`, allocating across Six Primary US Equity Factors:
+- **Basic Framework**: `SF`, allocating across 6 Primary US Equity Factors using major ETFs:
   - `MTUM`: [iShares Edge MSCI USA Momentum Factor ETF](https://www.ishares.com/us/products/251614/ishares-msci-usa-momentum-factor-etf), Inception: Apr 16, 2013
   - `QUAL`: [iShares Edge MSCI USA Quality Factor ETF](https://www.ishares.com/us/products/256101/ishares-msci-usa-quality-factor-etf), Inception: Jul 16, 2013
   - `VLUE`: [iShares Edge MSCI USA Value Factor ETF](https://www.ishares.com/us/products/251616/ishares-msci-usa-value-factor-etf), Inception: Apr 16, 2013
