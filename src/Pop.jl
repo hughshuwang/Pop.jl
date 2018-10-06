@@ -3,6 +3,7 @@ __precompile__()
 module Pop
 
 using CSV
+using Clp
 using Dates
 using DataFrames
 using JuMP
@@ -10,7 +11,10 @@ using Lazy
 using TimeSeries
 
 # import
-# export
+export
+    getDataFrame, getquotemedia, getlogreturn
+
+
 # macros and support functions
 # includes ahead
 
@@ -82,7 +86,7 @@ struct ProportionalTrade    <: Policy end
 struct SellAll              <: Policy end
 struct FixedTrade           <: Policy end
 
-struct Rebalance            <: Policy end
+abstract type Rebalance            <: Policy end
 struct PeriodicRebalance    <: Rebalance end
 struct AdaptiveRebalance    <: Rebalance end
 
@@ -99,7 +103,7 @@ struct RobustSigma              <: RiskModel end
 struct RobustFactorModelSigma   <: RiskModel end
 struct WorstCaseRisk            <: RiskModel end
 gamma(m::M) where {M<:RiskModel} = 1
-# wbench(m::M) where{M <: RiskModel} = getfield(m, :wbench)
+# wbench(m::M) where {M<:RiskModel} = getfield(m, :wbench)
 
 # Returns Family
 # struct ReturnsForecast          <: ReturnModel end
@@ -123,22 +127,22 @@ Args:
     z: trade weights
     v: portfolio dollar value
 """
-function weight_expr(expr::T, t::Number,
-    w_bench::Union{Vector{Number}, Missing},
-    w_plus::Union{Vector{Number}, Missing},
-    z::Vector{Number}, value::Number
-    ) where {T <: Expression}
-end # weight_expr_ahead not implemented
+# function weight_expr(expr::T, t::Number,
+#     w_bench::Union{Vector{Number}, Missing},
+#     w_plus::Union{Vector{Number}, Missing},
+#     z::Vector{Number}, value::Number
+#     ) where {T <: Expression}
+# end # weight_expr_ahead not implemented
 
 
 """
     value_expr(expr::Expression, t::Number, h_plus::Vector{Number},
         u::Vector{Number})
 """
-function value_expr(expr::Expression, t::Number,
-    h_plus::Vector{Number}, u::Vector{Number})
-    sum(h_plus) * weight_expr(expr, t, h_plus/sum(h_plus), u/sum(u), sum(h_plus))
-end
+# function value_expr(expr::Expression, t::Number,
+#     h_plus::Vector{Number}, u::Vector{Number})
+#     sum(h_plus) * weight_expr(expr, t, h_plus/sum(h_plus), u/sum(u), sum(h_plus))
+# end
 
 
 """
@@ -147,7 +151,7 @@ end
 Utils: Pick last element before t, NOT IMPLEMENTED
 In python, pick the last row from a pandas dataframe
 """
-function locator(obj::DataFrame, t::Date) end
+# function locator(obj::DataFrame, t::Date) end
 
 
 """
@@ -168,6 +172,8 @@ getfq(df::Date) = string("Q", Int(floor((month(t)-1)/3) + 1), " ", year(t))
     getDataFrame(file::String)
     getDataFrame(file::Vector{String})
 
+# Examples
+```julia
 # PENDING FOR GENERATING A TIMEARRAY
 core = @as x rets convert(Array, x[:, 2:ncol(x)]) # drop date
 symbols = @as x rets names(x)[1:(ncol(x)-1)]
@@ -176,9 +182,16 @@ typeof(convert(Array, rets)) <: AbstractArray
 ts = TimeArray(convert(AbstractVector{Date}, rets[:date]),
     @as x rets convert(Array, Base.getindex(x, :, 2:ncol(x))))
 cannot set colnames # this time array is sooooo weird
+
+# GETTING VARIABLES FROM ./data
+var_names = ["adjclose", "changep", "rollmean", "rollvcov", "volume"]
+adjclose, rets, mean, vcov, vol =
+    @>> var_names map(name -> string("../data/SF_", name, ".csv")) getDataFrame
+```
 """
-getDataFrame(file::String)::DataFrame = Lazy.@as x file CSV.File(x) DataFrame(x) x[:, 2:ncol(x)] # Base.getindex
+getDataFrame(file::String)::DataFrame = Lazy.@as x file CSV.File(x) DataFrame(x) x[:, :] # Base.getindex
 getDataFrame(files::Vector{String})::Vector{DataFrame} = map(getDataFrame, files)
+
 
 """
     getquotemedia(;start_date::Date, end_date::Date, symbol::String)
