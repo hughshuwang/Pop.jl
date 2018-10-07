@@ -14,14 +14,13 @@ using TimeSeries
 export
     getDataFrame, getquotemedia, getlogreturn
 
-
 # macros and support functions
 # includes ahead
 
-# Module Type Map
+## Module Type Map ##
 abstract type Policy end
 abstract type Constraint end
-abstract type CostModel end # param req: gamma
+abstract type CostModel end
 abstract type RiskModel end
 abstract type ReturnModel end
 abstract type SimulatorResult end
@@ -59,25 +58,51 @@ end
 # Cost Family <: CostModel
 # main mem func: estimate, time, trades, value, returns an expr for the tcosts
 # call expression from cvx
-struct HcostModel <: CostModel
+struct HCostModel <: CostModel
     gamma::Number
     borrow_costs::DataFrame
     dividends::DataFrame
+    # constructor
+    # HcostModel()
 end
-struct TcostModel <: CostModel
-    gamma::Number
-    volume::DataFrame # time series index required
-    sigma::DataFrame # or Matrix{Number}, daily volatilities
-    half_spread::DataFrame
-    nonlin_coeff::DataFrame
-    power::Number
-end
-gamma(m::M) where {M<:CostModel} = 1 # outer interface
 
-function estimate(;costmodel::T, t::U, tau::U = t, w_plus::Vector{Number},
-    z::Vector{Number}, value::Vector{Number}
-    ) where {T<:CostModel, U<:TimeType}
+struct TCostModel <: CostModel # immutable,
+    halfspread::Float64 # a
+
+    nlcoeff::Float64 # b = 1
+    sigma::Float64 # realized volatility in the period
+    volume::Int # total market dollar volume traded in the period
+    gamma::Number # power of non-linear term
+
+    asymcoeff::Float64 # c = 0, used for asymmetry
+
+    # example: TCostModel(a = 1.0, b = 1.0, σ = 1.0, v = 1, γ = 1, c = 1.0)
+    function TCostModel(;a::Float64, b::Float64 = 0.0, c::Float64 = 0.0,
+                        sigma::Float64 = 0.0, v::Int = 1, gamma::Number = 1/2)
+        x = new() # can only be defined in the struct
+        x.halfspread, x.nlcoeff, x.asymcoeff = [a, b, c]
+        x.sigma, x.volume, x.gamma = [sigma, v, gamma]
+        x
+    end
 end
+
+function Expr(m::TCostModel, weight_rep::Bool = true)
+    if weight_rep
+        expr = :($m.halfspread * abs(z) +
+            $m.nlcoeff * $m.sigma * (abs(z) / ($m.volume/v)) ^ $m.gamma * abs(x) +
+            $m.asymcoeff * x)
+    else
+        expr = :($m.halfspread * abs(x) +
+            $m.nlcoeff * $m.sigma * (abs(x) / $m.volume) ^ $m.gamma * abs(x) +
+            $m.asymcoeff * x)
+    end
+    # TODO: assemble expressions to make the code easier to read and arrange
+end
+
+# function estimate(;costmodel::T, t::U, tau::U = t, w_plus::Vector{Number},
+#     z::Vector{Number}, value::Vector{Number}
+#     ) where {T<:CostModel, U<:TimeType}
+# end
 
 # Policy Family
 struct Hold                 <: Policy end

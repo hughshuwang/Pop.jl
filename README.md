@@ -45,14 +45,13 @@ julia> Pkg.status()
 ## Guidelines
 
 - **Basic Framework**: `SF`, allocating across 6 Primary US Equity Factors using major ETFs:
-  - `MTUM`: [iShares Edge MSCI USA Momentum Factor ETF](https://www.ishares.com/us/products/251614/ishares-msci-usa-momentum-factor-etf), Inception: Apr 16, 2013
-  - `QUAL`: [iShares Edge MSCI USA Quality Factor ETF](https://www.ishares.com/us/products/256101/ishares-msci-usa-quality-factor-etf), Inception: Jul 16, 2013
-  - `VLUE`: [iShares Edge MSCI USA Value Factor ETF](https://www.ishares.com/us/products/251616/ishares-msci-usa-value-factor-etf), Inception: Apr 16, 2013
-  - `SIZE`: [iShares Edge MSCI USA Size Factor ETF](https://www.ishares.com/us/products/251465/ishares-msci-usa-size-factor-etf), Inception: Apr 16, 2013
-  - `USMV`: [iShares Edge MSCI Min Vol USA ETF](https://www.ishares.com/us/products/239695/ishares-msci-usa-minimum-volatility-etf), Inception: Oct 18, 2011
-  - `SPY`: SPDR S&P 500 Trust ETF, Inception: Jan 22, 1993
+  - [`MTUM`](https://www.ishares.com/us/products/251614/ishares-msci-usa-momentum-factor-etf (Momentum, Apr 16, 2013)
+  - [`QUAL`](https://www.ishares.com/us/products/256101/ishares-msci-usa-quality-factor-etf) (Quality, Jul 16, 2013)
+  - [`VLUE`](https://www.ishares.com/us/products/251616/ishares-msci-usa-value-factor-etf) (Value, Apr 16, 2013)
+  - [`SIZE`](https://www.ishares.com/us/products/251465/ishares-msci-usa-size-factor-etf) (Size Apr 16, 2013)
+  - [`USMV`](https://www.ishares.com/us/products/239695/ishares-msci-usa-minimum-volatility-etf) (Min Vol, Oct 18, 2011)
+  - `SPY` (S&P 500, Jan 22, 1993)
   - Datasets: take common sub-index without NA and zero value across 6 ETFs and 9 core variables. 9 separate files are stored in `./data` (1019 * 9). Files named as `<SF_variablename.csv>`. Columns named as `<variablename.TICKER>` and `date` with format `%Y-%m-%d`. Data prep implemented in `R`, will be done in `Julia` soon. 
-  - Process stored in `./src/0-Pop.R`.
 - **Global Control:** time series and data frames of key variables, manage time index, forward and backward looking, rolling apply, estimates. Key variables saved as data frames or time series before entering the optimization system. Once start optimization, won't be able to dynamically change the data frames.
 - **Optimization:** portfolio optimization framework connecting JuMP API using macros.
 

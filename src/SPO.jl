@@ -12,6 +12,11 @@ using DataFrames
 
 include("Pop.jl") # core
 
+## local toy functions ##
+slice(df::DataFrame, t::Date) = @as x df x[x[:date] .== t, :] convert(Array, x) Vector{Float64}(x[2:length(x)])
+flip(c::Tuple{Int64, Int64}) = c[1] <= c[2] ? (c[1], c[2]) : (c[2], c[1])
+sequpper(c::Tuple{Int64, Int64}, n::Int64) = (sum((n-(c[1]-2)):n) + (c[2]-c[1]+1))
+
 ## data prep ##
 var_names = ["adjclose", "changep", "rollmean", "rollvcov", "volume"]
 adjclose, rets, mean, vcov, vol =
@@ -25,31 +30,30 @@ tm1 = Date(2018, 1, 3) # t minus 1, get realized rolling mean and std
 t = @as x timeidx x[(1:length(x))[x .== tm1][1] + 1]
     # not used in the optimization, not forward looking, saved for use
 
-μt = mean[mean[:date] .== tm1, :] # used as estimate for time t
-
-# toy functions for manipulating Matrix{Tuple{Int 64, Int 64}}
-flip(c::Tuple{Int64, Int64}) = c[1] <= c[2] ? (c[1], c[2]) : (c[2], c[1])
-sequpper(c::Tuple{Int64, Int64}, n::Int64) = (sum((n-(c[1]-2)):n) + (c[2]-c[1]+1))
-
-tuples = [(i, j) for i in 1:n, j in 1:n] # raw tuples
-Σ = @as x vcov x[x[:date] .== tm1, :] convert(Array, x) Vector{Float64}(x[2:length(x)])
-Σt = @. Σ[sequpper(flip(tuples), n)] # estimate of vcov at time t
+# estimates for time t
+μt = slice(mean, tm1)
+Σ = slice(vcov, tm1) # raw vectorized version of vcov realized at time t-1
+Σt = @. Σ[sequpper(flip([(i, j) for i in 1:n, j in 1:n]), n)]
+σt = [Σt[i, i] for i in 1:n]
 
     # output a set of parameters
-    # snapshot(dataframes, date), get a struct of dataset
     # optimization process build should be finished in compile time
     # in script apply the optimizer in a rolling window
 
 # prepare riskmodels
-# prepare costmodels
+# HcostModel(...) # use params to initialize # past models to the function
+# TODO: weekly average volume required for this estimate, for now just use realized
+tcostmodel = TCostModel(a = 0.5/100, b = 0.0, c = 0.0, sigma = 0.0, v = 1, gamma = 1/2)
+tcostmodels = repeat([tcost], n) # assume that no transaction costs for cash account
+@. Expr(tcostmodels) # TODO: should eval members when generating the expressions
 # prepare additional constraints just control excluding cash
-
 
 
 ## Model Init ##
 
-# function input: n, wt, μt, Σ, riskmodel, tcostmodel, hcostmodel, (initialized)
-# additional constraints, (self-financing constraints are fixed inside)
+# function input: n, wt, μt, Σ, riskmodel, a vector of tcostmodel,
+#   a vector of hcostmodel, (initialized)
+#   additional constraints, (self-financing constraints are fixed inside)
 
 m = Model(solver = ClpSolver()) # cannot run immediately, compile the problem once
 
@@ -67,21 +71,16 @@ m = Model(solver = ClpSolver()) # cannot run immediately, compile the problem on
 @variable(m, z[1:n]) # control vars: weights
 # TODO: set of trading constraints and holding constraints
 
-ret = AffExpr(wp, rh) # portfolio return fixed affine
-# TODO: riskp = QuadExpr() # build Omega
-# TODO: other risk metrics in Expr
-
-@expression(m, ret)
-@expression(m, risk)
-@expression(m, Expr(tcostmodel)) # add method for Expr
-@expression(m, Expr(hcostmodel))
+@expression(m, ret, AffExpr(wt+zt, μt))
+@expression(m, risk, QuadExpr(wt, Σt)) # TODO: other risk metrics
+@expression(m, tcost, Expr(tcostmodel)) # add method for Expr
+@expression(m, hcost, Expr(hcostmodel))
 
 # @expression(m, ) # affine return function
 # @objective(m, )
 
-@constraint(m, 1x + 5y <= 3.0)
-
-@objective(m, Max, 5x + 3y)
+@constraint(m, 1x + 5y <= 3.0) # self-financing constraints using cost models
+@objective(m, min, 5x + 3y)
 
 status = solve(m)
 
