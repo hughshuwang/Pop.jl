@@ -5,6 +5,7 @@
 ###############################################################################
 
 using Clp
+using Dates
 using JuMP
 using Lazy
 using DataFrames
@@ -14,24 +15,46 @@ include("Pop.jl") # core
 ## data prep ##
 var_names = ["adjclose", "changep", "rollmean", "rollvcov", "volume"]
 adjclose, rets, mean, vcov, vol =
-    @>> var_names map(name -> string("./data/SF_", name, ".csv")) Pop.getDataFrame()
-n = ncol(adjclose) # number of assets, plus cash, minus date
-w = ones(Float64, n) ./ n # initial weights known
+    @>> var_names map(x -> string("./data/SF_", x, ".csv")) Pop.getDataFrame()
+
+timeidx = convert(Vector{Date}, adjclose[:date])
+n = ncol(adjclose) - 1 # number of assets, minus date, cash exluded
+wt = ones(Float64, n) ./ n # initial weights known at the beginning, t-
+
+tm1 = Date(2018, 1, 3) # t minus 1, get realized rolling mean and std
+t = @as x timeidx x[(1:length(x))[x .== tm1][1] + 1]
+    # not used in the optimization, not forward looking, saved for use
+
+μt = mean[mean[:date] .== tm1, :] # used as estimate for time t
+
+# toy functions for manipulating Matrix{Tuple{Int 64, Int 64}}
+flip(c::Tuple{Int64, Int64}) = c[1] <= c[2] ? (c[1], c[2]) : (c[2], c[1])
+sequpper(c::Tuple{Int64, Int64}, n::Int64) = (sum((n-(c[1]-2)):n) + (c[2]-c[1]+1))
+
+tuples = [(i, j) for i in 1:n, j in 1:n] # raw tuples
+Σ = @as x vcov x[x[:date] .== tm1, :] convert(Array, x) Vector{Float64}(x[2:length(x)])
+Σt = @. Σ[sequpper(flip(tuples), n)] # estimate of vcov at time t
 
     # output a set of parameters
     # snapshot(dataframes, date), get a struct of dataset
     # optimization process build should be finished in compile time
     # in script apply the optimizer in a rolling window
 
+# prepare riskmodels
+# prepare costmodels
+# prepare additional constraints just control excluding cash
+
+
 
 ## Model Init ##
-m = Model(solver = ClpSolver())
-    # cannot run immediately, must compile the whole problem set once
 
+# function input: n, wt, μt, Σ, riskmodel, tcostmodel, hcostmodel, (initialized)
+# additional constraints, (self-financing constraints are fixed inside)
+
+m = Model(solver = ClpSolver()) # cannot run immediately, compile the problem once
 
 ## Building model ##
 
-    # params are globally set: (n, models, w)
     # var naming:
     #    w: original weights, wp: weights after trading, z: rading weights
     #   rp: return_portfolio, rh: return_head (estimated)

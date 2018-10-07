@@ -164,8 +164,8 @@ getfq(df::Date) = string("Q", Int(floor((month(t)-1)/3) + 1), " ", year(t))
 
 
 ###############################################################################
-## Data Management Family
-## include("data_mgmt.jl")
+## Data Processors
+## include("data_processors.jl")
 ###############################################################################
 
 """
@@ -189,7 +189,7 @@ adjclose, rets, mean, vcov, vol =
     @>> var_names map(name -> string("../data/SF_", name, ".csv")) getDataFrame
 ```
 """
-getDataFrame(file::String)::DataFrame = Lazy.@as x file CSV.File(x) DataFrame(x) x[:, :] # Base.getindex
+getDataFrame(file::String)::DataFrame = Lazy.@as x file CSV.File(x) DataFrame(x)
 getDataFrame(files::Vector{String})::Vector{DataFrame} = map(getDataFrame, files)
 
 
