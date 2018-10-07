@@ -45,7 +45,7 @@ julia> Pkg.status()
 ## Guidelines
 
 - **Basic Framework**: `SF`, allocating across 6 Primary US Equity Factors using major ETFs:
-  - [`MTUM`](https://www.ishares.com/us/products/251614/ishares-msci-usa-momentum-factor-etf (Momentum, Apr 16, 2013)
+  - [`MTUM`](https://www.ishares.com/us/products/251614/ishares-msci-usa-momentum-factor-etf) (Momentum, Apr 16, 2013)
   - [`QUAL`](https://www.ishares.com/us/products/256101/ishares-msci-usa-quality-factor-etf) (Quality, Jul 16, 2013)
   - [`VLUE`](https://www.ishares.com/us/products/251616/ishares-msci-usa-value-factor-etf) (Value, Apr 16, 2013)
   - [`SIZE`](https://www.ishares.com/us/products/251465/ishares-msci-usa-size-factor-etf) (Size Apr 16, 2013)
