@@ -58,7 +58,7 @@ end
 # Cost Family <: CostModel
 # main mem func: estimate, time, trades, value, returns an expr for the tcosts
 # call expression from cvx
-struct HCostModel <: CostModel
+mutable struct HCostModel <: CostModel
     borrowfee::Float64 # s
     mgmtfee::Float64 # f
 
@@ -69,7 +69,7 @@ struct HCostModel <: CostModel
     end
 end
 
-struct TCostModel <: CostModel # immutable
+mutable struct TCostModel <: CostModel # immutable
     halfspread::Float64 # a
 
     nlcoeff::Float64 # b = 1
@@ -79,7 +79,7 @@ struct TCostModel <: CostModel # immutable
 
     asymcoeff::Float64 # c = 0, used for asymmetry
 
-    # example: TCostModel(a = 1.0, b = 1.0, σ = 1.0, v = 1, γ = 1, c = 1.0)
+    # example: TCostModel(a = 1.0, b = 1.0, c = 1.0, sigma = 1.0, v = 1, gamma = 1)
     function TCostModel(;a::Float64, b::Float64 = 0.0, c::Float64 = 0.0,
                         sigma::Float64 = 0.0, v::Int = 1, gamma::Number = 1/2)
         x = new() # can only be defined in the struct
@@ -89,25 +89,23 @@ struct TCostModel <: CostModel # immutable
     end
 end
 
-
-
 function Expr(m::HCostModel, weight_rep::Bool = true)
     if weight_rep
-        expr = :(m.s * max(-(w + z), 0) - m.f * (w + z))
+        expr = :($m.s * max(-(w + z), 0) - $m.f * (w + z))
     else
-        expr = :(v * (m.s * max(-(w + z), 0) - m.f * (w + z)))
+        expr = :(v * ($m.s * max(-(w + z), 0) - $m.f * (w + z)))
     end
 end
 
 function Expr(m::TCostModel, weight_rep::Bool = true)
     if weight_rep
-        expr = :($m.halfspread * abs(z) +
-            $m.nlcoeff * $m.sigma * (abs(z) / ($m.volume/v)) ^ $m.gamma * abs(x) +
-            $m.asymcoeff * x)
+        expr = :($(m.halfspread) * abs(z) +
+            $(m.nlcoeff) * $(m.sigma) * (abs(z)/($(m.volume)/v))^$(m.gamma) * abs(x) +
+            $(m.asymcoeff) * x)
     else
-        expr = :($m.halfspread * abs(x) +
-            $m.nlcoeff * $m.sigma * (abs(x) / $m.volume) ^ $m.gamma * abs(x) +
-            $m.asymcoeff * x)
+        expr = :($(m.halfspread) * abs(x) +
+            $(m.nlcoeff) * $(m.sigma) * (abs(x)/$(m.volume)) ^ $(m.gamma) * abs(x) +
+            $(m.asymcoeff) * x)
     end
     # TODO: assemble expressions to make the code easier to read and arrange
 end

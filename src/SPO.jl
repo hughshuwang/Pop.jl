@@ -28,14 +28,12 @@ wt = ones(Float64, n) ./ n # initial weights known at the beginning, t-
 
 tm1 = Date(2018, 1, 3) # t minus 1, get realized rolling mean and std
 t = @as x timeidx x[(1:length(x))[x .== tm1][1] + 1]
-    # not used in the optimization, not forward looking, saved for use
 
 # Estimates for time t
-μt = slice(mean, tm1); Σ = slice(vcov, tm1) # vectorized vcov realized at t-1
+μt = slice(mean, tm1)
+Σ = slice(vcov, tm1) # vectorized vcov realized at t-1
 Σt = @. Σ[sequpper(flip([(i, j) for i in 1:n, j in 1:n]), n)]
 σt = [Σt[i, i] for i in 1:n]
-# volume for cost models
-
 
     # output a set of parameters
     # optimization process build should be finished in compile time
@@ -44,9 +42,12 @@ t = @as x timeidx x[(1:length(x))[x .== tm1][1] + 1]
 # prepare riskmodels
 # HcostModel(...) # use params to initialize # past models to the function
 # TODO: weekly average volume required for this estimate, for now just use realized
-tcostmodel = TCostModel(a = 0.5/100, b = 0.0, c = 0.0, sigma = 0.0, v = 1, gamma = 1/2)
-tcostmodels = repeat([tcost], n) # assume that no transaction costs for cash account
+basictcost = TCostModel(a = 0.5/100, b = 0.0, c = 0.0, sigma = 0.0, v = 1, gamma = 1/2)
+tcostmodels = repeat([basictcost], n) # assume that no transaction costs for cash account
 # prepare additional constraints just control excluding cash
+basichcost = HCostModel(s = 1.0, f = 1.0)
+hcostmodels = repeat([basichcost], n)
+# TODO: 
 
 
 ## Model Init ##
