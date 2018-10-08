@@ -30,11 +30,12 @@ tm1 = Date(2018, 1, 3) # t minus 1, get realized rolling mean and std
 t = @as x timeidx x[(1:length(x))[x .== tm1][1] + 1]
     # not used in the optimization, not forward looking, saved for use
 
-# estimates for time t
-μt = slice(mean, tm1)
-Σ = slice(vcov, tm1) # raw vectorized version of vcov realized at time t-1
+# Estimates for time t
+μt = slice(mean, tm1); Σ = slice(vcov, tm1) # vectorized vcov realized at t-1
 Σt = @. Σ[sequpper(flip([(i, j) for i in 1:n, j in 1:n]), n)]
 σt = [Σt[i, i] for i in 1:n]
+# volume for cost models
+
 
     # output a set of parameters
     # optimization process build should be finished in compile time
@@ -45,7 +46,6 @@ t = @as x timeidx x[(1:length(x))[x .== tm1][1] + 1]
 # TODO: weekly average volume required for this estimate, for now just use realized
 tcostmodel = TCostModel(a = 0.5/100, b = 0.0, c = 0.0, sigma = 0.0, v = 1, gamma = 1/2)
 tcostmodels = repeat([tcost], n) # assume that no transaction costs for cash account
-@. Expr(tcostmodels) # TODO: should eval members when generating the expressions
 # prepare additional constraints just control excluding cash
 
 
@@ -73,7 +73,9 @@ m = Model(solver = ClpSolver()) # cannot run immediately, compile the problem on
 
 @expression(m, ret, AffExpr(wt+zt, μt))
 @expression(m, risk, QuadExpr(wt, Σt)) # TODO: other risk metrics
-@expression(m, tcost, Expr(tcostmodel)) # add method for Expr
+
+@expression(m, tcost[1:n], @. Expr(tcostmodels) # n cost models for assets
+    # TODO: should eval members when generating the expressions
 @expression(m, hcost, Expr(hcostmodel))
 
 # @expression(m, ) # affine return function

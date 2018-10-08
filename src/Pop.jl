@@ -59,14 +59,17 @@ end
 # main mem func: estimate, time, trades, value, returns an expr for the tcosts
 # call expression from cvx
 struct HCostModel <: CostModel
-    gamma::Number
-    borrow_costs::DataFrame
-    dividends::DataFrame
-    # constructor
-    # HcostModel()
+    borrowfee::Float64 # s
+    mgmtfee::Float64 # f
+
+    function HCostModel(;s::Float64, f::Float64)
+        x = new()
+        x.borrowfee, x.mgmtfee = [s, f]
+        x
+    end
 end
 
-struct TCostModel <: CostModel # immutable,
+struct TCostModel <: CostModel # immutable
     halfspread::Float64 # a
 
     nlcoeff::Float64 # b = 1
@@ -83,6 +86,16 @@ struct TCostModel <: CostModel # immutable,
         x.halfspread, x.nlcoeff, x.asymcoeff = [a, b, c]
         x.sigma, x.volume, x.gamma = [sigma, v, gamma]
         x
+    end
+end
+
+
+
+function Expr(m::HCostModel, weight_rep::Bool = true)
+    if weight_rep
+        expr = :(m.s * max(-(w + z), 0) - m.f * (w + z))
+    else
+        expr = :(v * (m.s * max(-(w + z), 0) - m.f * (w + z)))
     end
 end
 
