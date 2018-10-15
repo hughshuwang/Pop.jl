@@ -9,6 +9,7 @@ using DataFrames
 using JuMP
 using Lazy
 using TimeSeries
+using HTTP
 
 # import
 export
@@ -83,28 +84,32 @@ mutable struct TCostModel <: CostModel # immutable
     function TCostModel(;a::Float64, b::Float64 = 0.0, c::Float64 = 0.0,
                         sigma::Float64 = 0.0, v::Int = 1, gamma::Number = 1/2)
         x = new() # can only be defined in the struct
-        x.halfspread, x.nlcoeff, x.asymcoeff = [a, b, c]
-        x.sigma, x.volume, x.gamma = [sigma, v, gamma]
+        x.halfspread, x.nlcoeff, x.asymcoeff = a, b, c
+        x.sigma, x.volume, x.gamma = sigma, v, gamma
         x
     end
 end
 
 function Expr(m::HCostModel, weight_rep::Bool = true)
     if weight_rep
-        expr = :($m.s * max(-(w + z), 0) - $m.f * (w + z))
+        expr = :($(m.s) * max(-(w + z), 0) -
+            $(m.f) * (w + z))
     else
-        expr = :(v * ($m.s * max(-(w + z), 0) - $m.f * (w + z)))
+        expr = :(v * ($(m.s) * max(-(w + z), 0) -
+            $(m.f) * (w + z)))
     end
 end
 
 function Expr(m::TCostModel, weight_rep::Bool = true)
     if weight_rep
         expr = :($(m.halfspread) * abs(z) +
-            $(m.nlcoeff) * $(m.sigma) * (abs(z)/($(m.volume)/v))^$(m.gamma) * abs(x) +
+            $(m.nlcoeff) * $(m.sigma) *
+                (abs(z)/($(m.volume)/v))^$(m.gamma) * abs(x) +
             $(m.asymcoeff) * x)
     else
         expr = :($(m.halfspread) * abs(x) +
-            $(m.nlcoeff) * $(m.sigma) * (abs(x)/$(m.volume)) ^ $(m.gamma) * abs(x) +
+            $(m.nlcoeff) * $(m.sigma) *
+                (abs(x)/$(m.volume)) ^ $(m.gamma) * abs(x) +
             $(m.asymcoeff) * x)
     end
     # TODO: assemble expressions to make the code easier to read and arrange

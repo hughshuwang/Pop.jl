@@ -18,9 +18,9 @@ flip(c::Tuple{Int64, Int64}) = c[1] <= c[2] ? (c[1], c[2]) : (c[2], c[1])
 sequpper(c::Tuple{Int64, Int64}, n::Int64) = (sum((n-(c[1]-2)):n) + (c[2]-c[1]+1))
 
 ## data prep ##
-var_names = ["adjclose", "changep", "rollmean", "rollvcov", "volume"]
+varnames = ["adjclose", "changep", "rollmean", "rollvcov", "volume"]
 adjclose, rets, mean, vcov, vol =
-    @>> var_names map(x -> string("./data/SF_", x, ".csv")) Pop.getDataFrame()
+    @>> varnames map(x -> string("./data/SF_", x, ".csv")) Pop.getDataFrame()
 
 timeidx = convert(Vector{Date}, adjclose[:date])
 n = ncol(adjclose) - 1 # number of assets, minus date, cash exluded
@@ -47,10 +47,9 @@ tcostmodels = repeat([basictcost], n) # assume that no transaction costs for cas
 # prepare additional constraints just control excluding cash
 basichcost = HCostModel(s = 1.0, f = 1.0)
 hcostmodels = repeat([basichcost], n)
-# TODO: 
-
 
 ## Model Init ##
+# TODO: make 4.4 work first as the benchmark
 
 # function input: n, wt, μt, Σ, riskmodel, a vector of tcostmodel,
 #   a vector of hcostmodel, (initialized)
